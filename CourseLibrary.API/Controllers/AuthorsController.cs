@@ -18,6 +18,7 @@ public class AuthorsController(
             throw new ArgumentNullException(nameof(mapper));
 
     [HttpGet]
+    [HttpHead]
     public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors()
     {
         // get authors from repo
