@@ -1,5 +1,6 @@
 ﻿using CourseLibrary.API.DbContexts;
-using CourseLibrary.API.Entities; 
+using CourseLibrary.API.Entities;
+using CourseLibrary.API.ResourceParameters;
 using Microsoft.EntityFrameworkCore;
 
 namespace CourseLibrary.API.Services;
@@ -110,6 +111,41 @@ public class CourseLibraryRepository(CourseLibraryContext context) : ICourseLibr
     public async Task<IEnumerable<Author>> GetAuthorsAsync()
     {
         return await _context.Authors.ToListAsync();
+    }
+
+    public async Task<IEnumerable<Author>> GetAuthorsAsync(
+        AuthorsResourceParameters authorsResourceParameters)
+    {
+        if (authorsResourceParameters == null)
+        {
+            throw new ArgumentNullException(nameof(authorsResourceParameters));
+        }
+
+        var searchQuery = authorsResourceParameters.SearchQuery;
+        var mainCategory = authorsResourceParameters.MainCategory;
+
+        if (string.IsNullOrWhiteSpace(mainCategory) && string.IsNullOrWhiteSpace(searchQuery))
+        {
+            return await GetAuthorsAsync();
+        }
+
+        IQueryable<Author> collection = _context.Authors;
+
+        if (!string.IsNullOrWhiteSpace(mainCategory))
+        {
+            mainCategory = mainCategory.Trim();
+            collection = collection.Where(a => a.MainCategory == mainCategory);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            searchQuery = searchQuery.Trim();
+            collection = collection.Where(a => a.MainCategory.Contains(searchQuery) ||
+                a.FirstName.Contains(searchQuery) ||
+                a.LastName.Contains(searchQuery));
+        }
+
+        return await collection.ToListAsync();
     }
 
     public async Task<IEnumerable<Author>> GetAuthorsAsync(IEnumerable<Guid> authorIds)
