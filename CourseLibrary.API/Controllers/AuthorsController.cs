@@ -13,18 +13,27 @@ namespace CourseLibrary.API.Controllers;
 [Route("api/authors")]
 public class AuthorsController(
     ICourseLibraryRepository courseLibraryRepository,
-    IMapper mapper) : ControllerBase
+    IMapper mapper,
+    IPropertyMappingService propertyMappingService) : ControllerBase
 {
     private readonly ICourseLibraryRepository _courseLibraryRepository = courseLibraryRepository ??
             throw new ArgumentNullException(nameof(courseLibraryRepository));
     private readonly IMapper _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
+    private readonly IPropertyMappingService _propertyMappingService = propertyMappingService ??
+            throw new ArgumentNullException(nameof(propertyMappingService));
 
     [HttpGet(Name = "GetAuthors")]
     [HttpHead]
-    public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(
+    public async Task<ActionResult> GetAuthors(
         [FromQuery] AuthorsResourceParameters authorsResourceParameters)
     {
+        if (!_propertyMappingService
+            .ValidMappingExistsFor<AuthorDto, Entities.Author>(authorsResourceParameters.OrderBy))
+        {
+            return BadRequest();
+        }
+
         // get authors from repo
         var authorsFromRepo = await _courseLibraryRepository
             .GetAuthorsAsync(authorsResourceParameters);
@@ -50,7 +59,8 @@ public class AuthorsController(
         Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(paginationMetadata));
 
         // return them
-        return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
+        return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo)
+            .ShapeData(authorsResourceParameters.Fields));
     }
 
     private string? CreateAuthorsResourceUri(
@@ -65,7 +75,9 @@ public class AuthorsController(
                         pageNumber = authorsResourceParameters.PageNumber - 1,
                         pageSize = authorsResourceParameters.PageSize,
                         mainCategory = authorsResourceParameters.MainCategory,
-                        searchQuery = authorsResourceParameters.SearchQuery
+                        searchQuery = authorsResourceParameters.SearchQuery,
+                        orderBy = authorsResourceParameters.OrderBy,
+                        fields = authorsResourceParameters.Fields
                     });
             case ResourceUriType.NextPage:
                 return Url.Link("GetAuthors",
@@ -74,7 +86,9 @@ public class AuthorsController(
                         pageNumber = authorsResourceParameters.PageNumber + 1,
                         pageSize = authorsResourceParameters.PageSize,
                         mainCategory = authorsResourceParameters.MainCategory,
-                        searchQuery = authorsResourceParameters.SearchQuery
+                        searchQuery = authorsResourceParameters.SearchQuery,
+                        orderBy = authorsResourceParameters.OrderBy,
+                        fields = authorsResourceParameters.Fields
                     });
             default:
                 return Url.Link("GetAuthors",
@@ -83,7 +97,9 @@ public class AuthorsController(
                         pageNumber = authorsResourceParameters.PageNumber,
                         pageSize = authorsResourceParameters.PageSize,
                         mainCategory = authorsResourceParameters.MainCategory,
-                        searchQuery = authorsResourceParameters.SearchQuery
+                        searchQuery = authorsResourceParameters.SearchQuery,
+                        orderBy = authorsResourceParameters.OrderBy,
+                        fields = authorsResourceParameters.Fields
                     });
         }
     }
