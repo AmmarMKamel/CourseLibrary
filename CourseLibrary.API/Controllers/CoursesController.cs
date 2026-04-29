@@ -20,7 +20,7 @@ public class CoursesController(ICourseLibraryRepository courseLibraryRepository,
     private readonly IMapper _mapper = mapper ??
             throw new ArgumentNullException(nameof(mapper));
 
-    [HttpGet]
+    [HttpGet(Name = "GetCoursesForAuthor")]
     public async Task<ActionResult<IEnumerable<CourseDto>>> GetCoursesForAuthor(Guid authorId)
     {
         if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
@@ -50,7 +50,7 @@ public class CoursesController(ICourseLibraryRepository courseLibraryRepository,
     }
 
 
-    [HttpPost]
+    [HttpPost(Name = "CreateCourseForAuthor")]
     public async Task<ActionResult<CourseDto>> CreateCourseForAuthor(
             Guid authorId, CourseForCreationDto course)
     {
