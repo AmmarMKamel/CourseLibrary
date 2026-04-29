@@ -49,6 +49,7 @@ internal static class StartupHelperExtensions
             CourseLibraryRepository>();
 
         builder.Services.AddTransient<IPropertyMappingService, PropertyMappingService>();
+        builder.Services.AddTransient<IPropertyCheckerService, PropertyCheckerService>();
 
         builder.Services.AddDbContext<CourseLibraryContext>(options =>
         {

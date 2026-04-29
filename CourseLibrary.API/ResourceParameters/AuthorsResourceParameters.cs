@@ -14,4 +14,5 @@ public class AuthorsResourceParameters
         set => _pageSize = Math.Min(value, maxPageSize);
     }
     public string OrderBy { get; set; } = "Name";
+    public string? Fields { get; set; }
 }
