@@ -161,6 +161,12 @@ public class AuthorsController(
         return links;
     }
 
+    [Produces("application/json",
+        "application/vnd.marvin.hateoas+json",
+        "application/vnd.marvin.author.full+json",
+        "application/vnd.marvin.author.full.hateoas+json",
+        "application/vnd.marvin.author.friendly+json",
+        "application/vnd.marvin.author.friendly.hateoas+json")]
     [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<ActionResult> GetAuthor(
         Guid authorId,
@@ -184,20 +190,43 @@ public class AuthorsController(
             return NotFound();
         }
 
-        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        var includeLinks = parsedMediaType.SubTypeWithoutSuffix.EndsWith(
+            "hateoas", StringComparison.InvariantCultureIgnoreCase);
+        IEnumerable<LinkDto> links = new List<LinkDto>();
+
+        if (includeLinks)
         {
-            var links = CreateLinksForAuthor(authorId, fields);
-
-            IDictionary<string, object?> linkedResourceToReturn = _mapper
-                .Map<AuthorDto>(authorFromRepo)
-                .ShapeData(fields);
-
-            linkedResourceToReturn.Add("links", links);
-
-            return Ok(linkedResourceToReturn);
+            links = CreateLinksForAuthor(authorId, fields);
         }
 
-        return Ok(_mapper.Map<AuthorDto>(authorFromRepo).ShapeData(fields));
+        var primaryMediaType = includeLinks
+            ? parsedMediaType.SubTypeWithoutSuffix.Substring(0, parsedMediaType.SubTypeWithoutSuffix.Length - 8)
+            : parsedMediaType.SubTypeWithoutSuffix;
+
+        if (primaryMediaType == "vnd.marvin.author.full")
+        {
+            IDictionary<string, object?> fullResourceToReturn = _mapper
+                .Map<AuthorFullDto>(authorFromRepo)
+                .ShapeData(fields);
+
+            if (includeLinks)
+            {
+                fullResourceToReturn.Add("links", links);
+            }
+
+            return Ok(fullResourceToReturn);
+        }
+
+        IDictionary<string, object?> friendlyResourceToReturn = _mapper
+            .Map<AuthorDto>(authorFromRepo)
+            .ShapeData(fields);
+
+        if (includeLinks)
+        {
+            friendlyResourceToReturn.Add("links", links);
+        }
+
+        return Ok(friendlyResourceToReturn);
     }
 
     private IEnumerable<LinkDto> CreateLinksForAuthor(Guid authorId, string? fields)
