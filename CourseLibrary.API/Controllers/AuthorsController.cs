@@ -6,6 +6,7 @@ using CourseLibrary.API.ResourceParameters;
 using CourseLibrary.API.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.Net.Http.Headers;
 using System.Text.Json;
 
 namespace CourseLibrary.API.Controllers;
@@ -161,8 +162,20 @@ public class AuthorsController(
     }
 
     [HttpGet("{authorId}", Name = "GetAuthor")]
-    public async Task<ActionResult> GetAuthor(Guid authorId, string? fields)
+    public async Task<ActionResult> GetAuthor(
+        Guid authorId,
+        string? fields,
+        [FromHeader(Name = "Accept")] string? mediaType)
     {
+        if (!MediaTypeHeaderValue.TryParse(mediaType, out var parsedMediaType))
+        {
+            return BadRequest(
+                _problemDetailsFactory.CreateProblemDetails(
+                    HttpContext,
+                    statusCode: 400,
+                    detail: $"Accept header media type value is not a valid media type."));
+        }
+
         // get author from repo
         var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
 
@@ -171,16 +184,20 @@ public class AuthorsController(
             return NotFound();
         }
 
-        var links = CreateLinksForAuthor(authorId, fields);
+        if (parsedMediaType.MediaType == "application/vnd.marvin.hateoas+json")
+        {
+            var links = CreateLinksForAuthor(authorId, fields);
 
-        IDictionary<string, object?> linkedResourceToReturn = _mapper
-            .Map<AuthorDto>(authorFromRepo)
-            .ShapeData(fields);
+            IDictionary<string, object?> linkedResourceToReturn = _mapper
+                .Map<AuthorDto>(authorFromRepo)
+                .ShapeData(fields);
 
-        linkedResourceToReturn.Add("links", links);
+            linkedResourceToReturn.Add("links", links);
 
-        // return author
-        return Ok(linkedResourceToReturn);
+            return Ok(linkedResourceToReturn);
+        }
+
+        return Ok(_mapper.Map<AuthorDto>(authorFromRepo).ShapeData(fields));
     }
 
     private IEnumerable<LinkDto> CreateLinksForAuthor(Guid authorId, string? fields)
