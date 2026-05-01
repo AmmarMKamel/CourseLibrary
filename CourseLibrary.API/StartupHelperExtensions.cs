@@ -16,6 +16,7 @@ internal static class StartupHelperExtensions
         builder.Services.AddControllers(configure =>
         {
             configure.ReturnHttpNotAcceptable = true;
+            configure.CacheProfiles.Add("240SecondsCacheProfile", new() { Duration = 240 });
         })
         .AddNewtonsoftJson(setupAction =>
         {
@@ -73,6 +74,8 @@ internal static class StartupHelperExtensions
         builder.Services.AddAutoMapper(config => { },
             AppDomain.CurrentDomain.GetAssemblies());
 
+        builder.Services.AddResponseCaching();
+
         return builder.Build();
     }
 
@@ -94,6 +97,8 @@ internal static class StartupHelperExtensions
                 });
             });
         }
+
+        app.UseResponseCaching();
  
         app.UseAuthorization();
 

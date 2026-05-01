@@ -12,6 +12,7 @@ namespace CourseLibrary.API.Controllers;
 
 [ApiController]
 [Route("api/authors/{authorId}/courses")]
+[ResponseCache(CacheProfileName = "240SecondsCacheProfile")]
 public class CoursesController(ICourseLibraryRepository courseLibraryRepository,
     IMapper mapper) : ControllerBase
 {
@@ -33,6 +34,7 @@ public class CoursesController(ICourseLibraryRepository courseLibraryRepository,
     }
 
     [HttpGet("{courseId}", Name = "GetCourseForAuthor")]
+    [ResponseCache(Duration = 120)]
     public async Task<ActionResult<CourseDto>> GetCourseForAuthor(Guid authorId, Guid courseId)
     {
         if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
